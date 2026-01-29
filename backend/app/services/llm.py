@@ -11,26 +11,29 @@ client = boto3.client(
     region_name=AWS_REGION,
 )
 
-def generate_answer(context: str, question: str) -> str:
+def generate_answer(context: str, question: str, chat_history: str = "") -> str:
     model_id = "mistral.mistral-large-3-675b-instruct"
     
-    # Modern Bedrock Converse API format
-    messages = [
-        {
-            "role": "user",
-            "content": [{"text": f"Context:\n{context}\n\nQuestion: {question}"}]
-        }
-    ]
+    # Combine history and current context
+    prompt_content = f"""
+    Previous Conversation:
+    {chat_history}
+
+    New Context:
+    {context}
+
+    Question: {question}
+    """
+
+    messages = [{"role": "user", "content": [{"text": prompt_content}]}]
 
     try:
         response = client.converse(
             modelId=model_id,
             messages=messages,
-            system=[{"text": SYSTEM_PROMPT}],
+            system=[{"text": SYSTEM_PROMPT}], # Uses your existing anti-hallucination prompt
             inferenceConfig={"maxTokens": 1024, "temperature": 0.2}
         )
-        
         return response["output"]["message"]["content"][0]["text"]
-
     except Exception as e:
-        return f"Bedrock Error: {str(e)}"
+        return f"Error: {str(e)}"
