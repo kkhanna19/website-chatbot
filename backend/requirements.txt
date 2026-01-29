@@ -9,7 +9,7 @@ langchain-community
 sentence-transformers
 faiss-cpu
 transformers
-torch==2.2.1+cpu 
+torch==2.5.1+cpu 
 pydantic
 boto3
 numpy
