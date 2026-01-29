@@ -461,7 +461,7 @@ This project is open-source and available under the MIT License.
 
 ## 👨‍💻 Author
 
-**Karan Khanna** - [GitHub](https://github.com/kkhanna19)
+**Kajal Khanna** - [GitHub](https://github.com/kkhanna19)
 
 ---
 
