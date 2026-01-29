@@ -1,25 +1,36 @@
-from transformers import pipeline
-from app.core.config import HF_API_TOKEN
+import boto3
+import json
+from app.core.config import AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_REGION
 from app.core.prompt import SYSTEM_PROMPT
 
-generator = pipeline(
-    task="text-generation",
-    model="mistralai/Mistral-7B-Instruct-v0.2",
-    token=HF_API_TOKEN,
-    max_new_tokens=300,
-    temperature=0.2,
-    do_sample=False
+# Initialize Bedrock Runtime client
+client = boto3.client(
+    service_name="bedrock-runtime",
+    aws_access_key_id=AWS_ACCESS_KEY,
+    aws_secret_access_key=AWS_SECRET_KEY,
+    region_name=AWS_REGION,
 )
 
 def generate_answer(context: str, question: str) -> str:
-    prompt = f"""
-{SYSTEM_PROMPT}
+    model_id = "mistral.mistral-large-3-675b-instruct"
+    
+    # Modern Bedrock Converse API format
+    messages = [
+        {
+            "role": "user",
+            "content": [{"text": f"Context:\n{context}\n\nQuestion: {question}"}]
+        }
+    ]
 
-Context:
-{context}
+    try:
+        response = client.converse(
+            modelId=model_id,
+            messages=messages,
+            system=[{"text": SYSTEM_PROMPT}],
+            inferenceConfig={"maxTokens": 1024, "temperature": 0.2}
+        )
+        
+        return response["output"]["message"]["content"][0]["text"]
 
-Question:
-{question}
-"""
-    response = generator(prompt)[0]["generated_text"]
-    return response
+    except Exception as e:
+        return f"Bedrock Error: {str(e)}"
