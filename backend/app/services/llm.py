@@ -1,16 +1,19 @@
 from transformers import pipeline
+from app.core.config import HF_API_TOKEN
+from app.core.prompt import SYSTEM_PROMPT
 
 generator = pipeline(
-    "text-generation",
+    task="text-generation",
     model="mistralai/Mistral-7B-Instruct-v0.2",
-    max_new_tokens=300
+    token=HF_API_TOKEN,
+    max_new_tokens=300,
+    temperature=0.2,
+    do_sample=False
 )
 
-def generate_answer(context, question):
+def generate_answer(context: str, question: str) -> str:
     prompt = f"""
-Answer ONLY from the context below.
-If not found, say:
-"The answer is not available on the provided website."
+{SYSTEM_PROMPT}
 
 Context:
 {context}
@@ -18,5 +21,5 @@ Context:
 Question:
 {question}
 """
-    result = generator(prompt)[0]["generated_text"]
-    return result
+    response = generator(prompt)[0]["generated_text"]
+    return response
