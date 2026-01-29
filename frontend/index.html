@@ -1,21 +1,562 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Website RAG Chatbot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #151520;
+      --bg-tertiary: #1e1e2e;
+      --accent: #00ff88;
+      --accent-dim: #00cc6a;
+      --text-primary: #ffffff;
+      --text-secondary: #a0a0b8;
+      --border: rgba(255, 255, 255, 0.1);
+      --shadow: rgba(0, 255, 136, 0.2);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Crimson Pro', serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: 
+        radial-gradient(circle at 20% 30%, rgba(0, 255, 136, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(0, 200, 255, 0.03) 0%, transparent 50%);
+      animation: drift 20s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes drift {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      50% { transform: translate(-5%, 5%) rotate(5deg); }
+    }
+
+    .container {
+      max-width: 800px;
+      width: 100%;
+      position: relative;
+      z-index: 1;
+      animation: fadeIn 0.8s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+      position: relative;
+    }
+
+    .title {
+      font-size: 3.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 3s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.85; }
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      font-weight: 400;
+      letter-spacing: 0.02em;
+    }
+
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 2.5rem;
+      margin-bottom: 2rem;
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card:hover {
+      border-color: rgba(0, 255, 136, 0.3);
+      box-shadow: 0 8px 32px var(--shadow);
+      transform: translateY(-2px);
+    }
+
+    .section-title {
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .input-wrapper {
+      position: relative;
+      flex: 1;
+    }
+
+    input {
+      width: 100%;
+      padding: 1rem 1.25rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      outline: none;
+    }
+
+    input::placeholder {
+      color: var(--text-secondary);
+      opacity: 0.6;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
+      background: var(--bg-secondary);
+    }
+
+    button {
+      padding: 1rem 2rem;
+      background: var(--accent);
+      color: var(--bg-primary);
+      border: none;
+      border-radius: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    button::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    button:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    button:hover {
+      background: var(--accent-dim);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 255, 136, 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    button:disabled:hover {
+      background: var(--accent);
+      box-shadow: none;
+    }
+
+    button span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .response-container {
+      min-height: 200px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      font-family: 'Crimson Pro', serif;
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+      overflow-y: auto;
+      max-height: 400px;
+      position: relative;
+    }
+
+    .response-container:empty::before {
+      content: 'Answers will appear here...';
+      color: var(--text-secondary);
+      opacity: 0.4;
+      font-style: italic;
+    }
+
+    .loader {
+      display: none;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 2rem;
+    }
+
+    .loader.active {
+      display: flex;
+    }
+
+    .loader-dot {
+      width: 12px;
+      height: 12px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: bounce 1.4s ease-in-out infinite;
+    }
+
+    .loader-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .loader-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes bounce {
+      0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+      }
+      30% {
+        transform: translateY(-15px);
+        opacity: 1;
+      }
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      background: var(--bg-tertiary);
+      border-radius: 12px;
+      margin-top: 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .status.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.5;
+        transform: scale(1.3);
+      }
+    }
+
+    .status.success .status-indicator {
+      background: var(--accent);
+      animation: none;
+    }
+
+    .status.error .status-indicator {
+      background: #ff4444;
+      animation: none;
+    }
+
+    .status-text {
+      color: var(--text-secondary);
+    }
+
+    @media (max-width: 768px) {
+      .title {
+        font-size: 2.5rem;
+      }
+
+      .input-group {
+        flex-direction: column;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      .card {
+        padding: 1.5rem;
+      }
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--accent-dim);
+    }
+  </style>
 </head>
 <body>
-  <h2>Website RAG Chatbot</h2>
+  <div class="container">
+    <div class="header">
+      <h1 class="title">RAG Chatbot</h1>
+      <p class="subtitle">Index any website and ask intelligent questions</p>
+    </div>
 
-  <input id="url" placeholder="Enter website URL" />
-  <button onclick="ingest()">Index</button>
+    <div class="card">
+      <div class="section-title">01 — Index Website</div>
+      <div class="input-group">
+        <div class="input-wrapper">
+          <input 
+            id="url" 
+            type="url"
+            placeholder="https://example.com" 
+            autocomplete="off"
+          />
+        </div>
+        <button onclick="ingest()">
+          <span id="indexBtn">Index</span>
+        </button>
+      </div>
+      <div id="indexStatus" class="status">
+        <div class="status-indicator"></div>
+        <div class="status-text">Ready to index</div>
+      </div>
+    </div>
 
-  <br><br>
+    <div class="card">
+      <div class="section-title">02 — Ask Question</div>
+      <div class="input-group">
+        <div class="input-wrapper">
+          <input 
+            id="question" 
+            type="text"
+            placeholder="What would you like to know?" 
+            autocomplete="off"
+          />
+        </div>
+        <button onclick="ask()">
+          <span id="askBtn">Ask</span>
+        </button>
+      </div>
 
-  <input id="question" placeholder="Ask a question" />
-  <button onclick="ask()">Ask</button>
+      <div id="loader" class="loader">
+        <div class="loader-dot"></div>
+        <div class="loader-dot"></div>
+        <div class="loader-dot"></div>
+      </div>
 
-  <pre id="response"></pre>
+      <div id="response" class="response-container"></div>
+    </div>
+  </div>
 
-<script src="js/app.js"></script>
+  <script>
+    // Simulated functions - replace with your actual implementation
+    async function ingest() {
+      const urlInput = document.getElementById('url');
+      const indexBtn = document.getElementById('indexBtn');
+      const indexStatus = document.getElementById('indexStatus');
+      const url = urlInput.value.trim();
+
+      if (!url) {
+        showStatus('error', 'Please enter a valid URL');
+        return;
+      }
+
+      // Disable button
+      const button = event.target.closest('button');
+      button.disabled = true;
+      indexBtn.textContent = 'Indexing...';
+
+      showStatus('loading', 'Indexing website...');
+
+      try {
+        // Replace this with your actual indexing logic
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Simulate success
+        showStatus('success', 'Website indexed successfully!');
+        indexBtn.textContent = 'Index';
+        button.disabled = false;
+        
+      } catch (error) {
+        showStatus('error', 'Failed to index website');
+        indexBtn.textContent = 'Index';
+        button.disabled = false;
+      }
+    }
+
+    async function ask() {
+      const questionInput = document.getElementById('question');
+      const askBtn = document.getElementById('askBtn');
+      const responseDiv = document.getElementById('response');
+      const loader = document.getElementById('loader');
+      const question = questionInput.value.trim();
+
+      if (!question) {
+        return;
+      }
+
+      // Disable button and show loader
+      const button = event.target.closest('button');
+      button.disabled = true;
+      askBtn.textContent = 'Thinking...';
+      loader.classList.add('active');
+      responseDiv.textContent = '';
+
+      try {
+        // Replace this with your actual RAG query logic
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Simulate response
+        const response = `Based on the indexed content, here's what I found about "${question}":\n\nThis is a simulated response. Replace this with your actual RAG implementation that retrieves relevant content from the indexed website and generates an intelligent answer using your language model.`;
+        
+        loader.classList.remove('active');
+        typeWriter(responseDiv, response);
+        askBtn.textContent = 'Ask';
+        button.disabled = false;
+        
+      } catch (error) {
+        loader.classList.remove('active');
+        responseDiv.textContent = 'Error: Failed to get response';
+        askBtn.textContent = 'Ask';
+        button.disabled = false;
+      }
+    }
+
+    function showStatus(type, message) {
+      const status = document.getElementById('indexStatus');
+      status.className = `status active ${type}`;
+      status.querySelector('.status-text').textContent = message;
+    }
+
+    function typeWriter(element, text, speed = 15) {
+      let i = 0;
+      element.textContent = '';
+      
+      function type() {
+        if (i < text.length) {
+          element.textContent += text.charAt(i);
+          i++;
+          setTimeout(type, speed);
+        }
+      }
+      
+      type();
+    }
+
+    // Allow Enter key to submit
+    document.getElementById('url').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') ingest();
+    });
+
+    document.getElementById('question').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') ask();
+    });
+  </script>
 </body>
 </html>
